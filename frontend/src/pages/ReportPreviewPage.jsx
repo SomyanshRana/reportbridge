@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { Download, Edit3, Save, ArrowLeft, TrendingUp, Users, DollarSign, Target } from "lucide-react";
+import { Download, Edit3, Save, ArrowLeft, TrendingUp, Users, DollarSign, Target, X, Info, BarChart2 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useInspector } from "../contexts/InspectorContext";
 
@@ -17,10 +17,11 @@ const KPI_DEFS = [
 ];
 
 function fmt(val, type) {
-  if (val == null) return "—";
-  if (type === "currency") return `$${Number(val).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  if (type === "multiplier") return `${Number(val).toFixed(2)}x`;
-  return Number(val).toLocaleString();
+  const n = Number(val);
+  if (val == null || isNaN(n) || !isFinite(n)) return "—";
+  if (type === "currency") return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (type === "multiplier") return `${n.toFixed(2)}x`;
+  return n.toLocaleString();
 }
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -37,6 +38,8 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
+const ROW_LIMIT = 50;
+
 export default function ReportPreviewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -46,6 +49,8 @@ export default function ReportPreviewPage() {
   const [savingSummary, setSavingSummary] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeKpi, setActiveKpi] = useState(null);
+  const [demoBannerVisible, setDemoBannerVisible] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
   const { setContent } = useInspector();
 
   useEffect(() => {
@@ -53,8 +58,15 @@ export default function ReportPreviewPage() {
       .then(r => {
         setReport(r.data);
         setSummary(r.data.summary || "");
+        if (r.data.is_demo) setDemoBannerVisible(true);
       })
-      .catch(() => toast.error("Failed to load report"))
+      .catch(err => {
+        if (err.response?.status === 401) {
+          toast.error("Session expired. Please log in again.");
+        } else {
+          toast.error("Failed to load report");
+        }
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -72,7 +84,7 @@ export default function ReportPreviewPage() {
         ].map(([k, v]) => (
           <div key={k} className="grid grid-cols-[60px_1fr] gap-1">
             <span className="font-mono text-[10px] text-gray-400">{k}</span>
-            <span className="font-mono text-[10px] text-gray-700 font-medium truncate">{v}</span>
+            <span className="font-mono text-[10px] text-gray-700 font-medium truncate">{String(v)}</span>
           </div>
         ))}
         <div className="pt-2 border-t border-gray-100">
@@ -101,14 +113,62 @@ export default function ReportPreviewPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><p className="font-mono text-xs text-gray-400">Loading report...</p></div>;
-  if (!report) return <div className="p-6"><p className="font-sans text-sm text-gray-500">Report not found.</p></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="font-mono text-xs text-gray-400">Loading report...</p>
+    </div>
+  );
+
+  if (!report) return (
+    <div className="p-6 text-center">
+      <BarChart2 size={28} className="text-gray-200 mx-auto mb-3" />
+      <p className="font-sans text-sm text-gray-500 mb-3">Report not found or you don't have access.</p>
+      <Link to="/app" className="font-mono text-xs text-cyan-500 hover:text-cyan-600">
+        <ArrowLeft size={10} className="inline mr-1" />Back to Dashboard
+      </Link>
+    </div>
+  );
 
   const kpi = report.kpi_data || {};
   const chartData = report.chart_data || [];
+  const displayRows = showAllRows ? chartData : chartData.slice(0, ROW_LIMIT);
 
   return (
     <div className="p-6 fade-in-up report-preview-container">
+
+      {/* Demo Banner */}
+      {demoBannerVisible && (
+        <div
+          data-testid="demo-banner"
+          className="mb-4 flex items-start sm:items-center justify-between gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-sm no-print"
+        >
+          <div className="flex items-start sm:items-center gap-2">
+            <Info size={14} className="text-amber-500 flex-shrink-0 mt-0.5 sm:mt-0" />
+            <p className="font-mono text-xs text-amber-700">
+              <strong>This is a demo report</strong> — 30 days of sample marketing data.
+              Upload your own CSV to build a real report for any client.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link
+              to="/app/reports/new"
+              data-testid="demo-banner-cta"
+              className="font-mono text-[10px] px-2.5 py-1 bg-amber-500 text-white rounded-sm hover:bg-amber-600 transition-colors whitespace-nowrap"
+            >
+              Create Real Report
+            </Link>
+            <button
+              onClick={() => setDemoBannerVisible(false)}
+              data-testid="demo-banner-dismiss"
+              aria-label="Dismiss demo banner"
+              className="text-amber-400 hover:text-amber-600 transition-colors"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6 no-print">
         <div>
@@ -142,7 +202,11 @@ export default function ReportPreviewPage() {
             key={kpiDef.key}
             data-testid={`kpi-${kpiDef.key}`}
             onClick={() => setActiveKpi(activeKpi === kpiDef.key ? null : kpiDef.key)}
-            className={`bg-white border rounded-sm p-3 cursor-pointer transition-all duration-200 ${activeKpi === kpiDef.key ? "border-[#06B6D4] shadow-[0_0_0_2px_rgba(6,182,212,0.15)]" : "border-gray-200 hover:border-cyan-300"}`}
+            className={`bg-white border rounded-sm p-3 cursor-pointer transition-all duration-200 relative ${
+              activeKpi === kpiDef.key
+                ? "border-[#06B6D4] shadow-[0_0_0_2px_rgba(6,182,212,0.15)]"
+                : "border-gray-200 hover:border-cyan-300"
+            }`}
           >
             {activeKpi === kpiDef.key && (
               <div className="absolute -top-5 left-0 bg-gray-900 text-cyan-400 font-mono text-[8px] px-1.5 py-0.5 rounded-sm whitespace-nowrap">
@@ -159,7 +223,7 @@ export default function ReportPreviewPage() {
       </div>
 
       {/* Charts */}
-      {chartData.length > 0 && (
+      {chartData.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 print-area">
           <div className="bg-white border border-gray-200 rounded-sm p-4">
             <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 mb-3">SPEND vs REVENUE</p>
@@ -167,7 +231,7 @@ export default function ReportPreviewPage() {
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis dataKey="date" tick={{ fontFamily: '"JetBrains Mono"', fontSize: 9 }} />
-                <YAxis tick={{ fontFamily: '"JetBrains Mono"', fontSize: 9 }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontFamily: '"JetBrains Mono"', fontSize: 9 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontFamily: '"JetBrains Mono"', fontSize: 10 }} />
                 <Line type="monotone" dataKey="spend" stroke="#06B6D4" strokeWidth={2} dot={false} name="Spend" />
@@ -188,13 +252,22 @@ export default function ReportPreviewPage() {
             </ResponsiveContainer>
           </div>
         </div>
+      ) : (
+        <div className="bg-white border border-dashed border-gray-200 rounded-sm p-10 text-center mb-6">
+          <BarChart2 size={28} className="text-gray-200 mx-auto mb-3" />
+          <p className="font-mono text-xs text-gray-400">No chart data available for this report.</p>
+          <p className="font-mono text-[10px] text-gray-300 mt-1">
+            Make sure your CSV includes a date column and at least one numeric column.
+          </p>
+        </div>
       )}
 
       {/* Data Table */}
       {chartData.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-sm overflow-hidden mb-6 print-area">
-          <div className="px-4 py-2.5 border-b border-gray-200 bg-gray-50">
+          <div className="px-4 py-2.5 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400">DATA TABLE</p>
+            <p className="font-mono text-[10px] text-gray-400">{chartData.length} rows</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -206,17 +279,30 @@ export default function ReportPreviewPage() {
                 </tr>
               </thead>
               <tbody>
-                {chartData.map((row, i) => (
+                {displayRows.map((row, i) => (
                   <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-2 font-mono text-xs text-gray-700">{row.date}</td>
                     <td className="px-4 py-2 font-mono text-xs text-gray-700">{fmt(row.spend, "currency")}</td>
-                    <td className="px-4 py-2 font-mono text-xs text-gray-700">{row.leads?.toLocaleString()}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-gray-700">
+                      {row.leads != null && !isNaN(Number(row.leads)) ? Number(row.leads).toLocaleString() : "—"}
+                    </td>
                     <td className="px-4 py-2 font-mono text-xs text-gray-700">{fmt(row.revenue, "currency")}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {chartData.length > ROW_LIMIT && (
+            <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-center">
+              <button
+                onClick={() => setShowAllRows(v => !v)}
+                data-testid="show-all-rows-btn"
+                className="font-mono text-[10px] text-cyan-500 hover:text-cyan-600 transition-colors"
+              >
+                {showAllRows ? "Show fewer rows" : `Show all ${chartData.length} rows`}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

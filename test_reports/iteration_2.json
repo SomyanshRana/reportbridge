@@ -1,0 +1,52 @@
+{
+  "summary": "Iteration 2 testing of ReportBridge features: demo onboarding, demo banner, KPI cards, charts, password validation, ObjectId validation, dashboard, export PDF, edit summary. All 9 backend tests pass. Core features work. One bug found: post-signup redirect to demo preview is broken.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "SignupPage / PublicRoute",
+        "issue": "After successful registration, user is redirected to /app (dashboard) instead of /app/reports/{demo_report_id}/preview. Root cause: PublicRoute re-renders when setUser(data) is called and its <Navigate to='/app' replace /> overrides the programmatic navigate('/app/reports/.../preview') call in handleSubmit. The toast 'Here's your demo report to get started' shows but user lands on dashboard, not preview.",
+        "selector": "PublicRoute in App.js",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration2.py",
+    "/app/test_reports/pytest/pytest_results_iter2.xml"
+  ],
+  "action_items": [
+    "Fix signup redirect to demo preview: PublicRoute race condition prevents navigate() to /app/reports/{id}/preview. Fix: In SignupPage, before calling navigate, either (a) don't setUser before navigating (store demo_report_id and redirect first), or (b) use a different mechanism - store demo_report_id in sessionStorage before setUser, then in AppDashboard redirect if found, or (c) move the navigate() before setUser() in AuthContext.register."
+  ],
+  "critical_code_review_comments": [
+    "PublicRoute in App.js: When user registers, setUser(data) is called in AuthContext which causes PublicRoute to render <Navigate to='/app' replace /> BEFORE the navigate('/app/reports/.../preview') from SignupPage completes. This is a classic React Router + state race condition.",
+    "Fix suggestion: In AuthContext.register(), return the data BEFORE calling setUser, then in SignupPage: navigate first, then setUser via a separate mechanism. Alternatively, pass the redirect URL through navigation state and handle in App level."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration2.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests pass)",
+    "frontend": "85% (signup redirect fails, all other features work)"
+  },
+  "test_credentials": {
+    "demo": "demo@reportbridge.io / demo1234",
+    "testaudit123": "testaudit123@test.com / test123",
+    "admin": "admin@reportbridge.io / admin123"
+  },
+  "seed_data_creation": "Multiple TEST_ users created during backend tests (auto-cleaned by test). UI test created newuiuser{timestamp}@test.com.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend 100% passing. Demo banner, KPI cards (no NaN), 2 charts, PDF export, edit summary, short password validation (frontend + backend), invalid ObjectId 400 response - ALL working. Only bug: signup redirect to demo preview goes to /app dashboard instead. testaudit123@test.com/test123 has demo report at ID 69c991348b84d389cf2c2a22.",
+  "rca_of_issue": {
+    "bug": "Signup does not redirect to demo report preview",
+    "root_cause": "In App.js, SignupPage is wrapped in PublicRoute. When register() calls setUser(data), React re-renders and PublicRoute returns <Navigate to='/app' replace /> because user is now truthy. This Navigate fires before or simultaneously with navigate('/app/reports/.../preview') from SignupPage.handleSubmit, causing the final URL to be /app.",
+    "reproduction": "1. Go to /signup, fill form, submit. 2. After success, observe URL is /app not /app/reports/.../preview.",
+    "mitigation": "Option A: In AuthContext.register, don't call setUser - let the PublicRoute detection happen from /auth/me response. Option B: Store demo_report_id in sessionStorage before setUser, then redirect in AppDashboard on mount. Option C: navigate to preview BEFORE setUser - use navigate then setUser."
+  }
+}

@@ -91,6 +91,13 @@ async def get_current_user(request: Request) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(401, "Invalid token")
 
+def _validate_oid(oid: str) -> ObjectId:
+    """Convert a string to ObjectId, raising 400 on invalid format."""
+    try:
+        return ObjectId(oid)
+    except Exception:
+        raise HTTPException(400, "Invalid ID format")
+
 # ── Request Models ────────────────────────────────────────────────────────────
 class RegisterRequest(BaseModel):
     email: str
@@ -165,6 +172,12 @@ async def _seed_new_user_demo(uid: str) -> str:
 @api_router.post("/auth/register")
 async def register(data: RegisterRequest):
     email = data.email.lower().strip()
+    if not email or "@" not in email:
+        raise HTTPException(400, "Invalid email address")
+    if len(data.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    if len(data.name.strip()) < 1:
+        raise HTTPException(400, "Name is required")
     if await db.users.find_one({"email": email}):
         raise HTTPException(400, "Email already registered")
     res = await db.users.insert_one({
@@ -237,12 +250,12 @@ async def create_client(data: ClientCreate, user=Depends(get_current_user)):
 
 @api_router.put("/clients/{cid}")
 async def update_client(cid: str, data: ClientCreate, user=Depends(get_current_user)):
-    await db.clients.update_one({"_id": ObjectId(cid), "user_id": user["_id"]}, {"$set": {"name": data.name, "industry": data.industry}})
+    await db.clients.update_one({"_id": _validate_oid(cid), "user_id": user["_id"]}, {"$set": {"name": data.name, "industry": data.industry}})
     return {"id": cid, "name": data.name, "industry": data.industry}
 
 @api_router.delete("/clients/{cid}")
 async def delete_client(cid: str, user=Depends(get_current_user)):
-    await db.clients.delete_one({"_id": ObjectId(cid), "user_id": user["_id"]})
+    await db.clients.delete_one({"_id": _validate_oid(cid), "user_id": user["_id"]})
     return {"message": "Deleted"}
 
 # ── Report Endpoints ──────────────────────────────────────────────────────────
@@ -274,7 +287,7 @@ async def list_reports(client_id: Optional[str] = None, user=Depends(get_current
 
 @api_router.post("/reports")
 async def create_report(data: ReportCreate, user=Depends(get_current_user)):
-    client = await db.clients.find_one({"_id": ObjectId(data.client_id)})
+    client = await db.clients.find_one({"_id": _validate_oid(data.client_id)})
     if not client:
         raise HTTPException(404, "Client not found")
     doc = {
@@ -291,14 +304,14 @@ async def create_report(data: ReportCreate, user=Depends(get_current_user)):
 
 @api_router.get("/reports/{rid}")
 async def get_report(rid: str, user=Depends(get_current_user)):
-    doc = await db.reports.find_one({"_id": ObjectId(rid), "user_id": user["_id"]})
+    doc = await db.reports.find_one({"_id": _validate_oid(rid), "user_id": user["_id"]})
     if not doc:
         raise HTTPException(404, "Report not found")
     return _fmt_report(doc)
 
 @api_router.delete("/reports/{rid}")
 async def delete_report(rid: str, user=Depends(get_current_user)):
-    await db.reports.delete_one({"_id": ObjectId(rid), "user_id": user["_id"]})
+    await db.reports.delete_one({"_id": _validate_oid(rid), "user_id": user["_id"]})
     return {"message": "Deleted"}
 
 @api_router.post("/reports/{rid}/upload-csv")
@@ -310,6 +323,9 @@ async def upload_csv(rid: str, files: List[UploadFile] = File(...), user=Depends
             raise HTTPException(400, f"{f.filename} exceeds the 15 MB file size limit")
         if len(content) == 0:
             raise HTTPException(400, f"{f.filename} is empty")
+        fname_lower = (f.filename or "").lower()
+        if not fname_lower.endswith(".csv"):
+            raise HTTPException(400, f"{f.filename} is not a CSV file — only .csv files are accepted")
         try:
             df = None
             for enc in ('utf-8', 'utf-8-sig', 'latin-1', 'cp1252'):
@@ -342,17 +358,17 @@ async def upload_csv(rid: str, files: List[UploadFile] = File(...), user=Depends
         except Exception as e:
             raise HTTPException(400, f"Failed to parse {f.filename}: {str(e)[:200]}")
     await db.reports.update_one(
-        {"_id": ObjectId(rid), "user_id": user["_id"]},
+        {"_id": _validate_oid(rid), "user_id": user["_id"]},
         {"$set": {"csv_files": csv_files, "status": "uploaded", "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     return {"csv_files": [{"filename": f["filename"], "headers": f["headers"], "row_count": f["row_count"]} for f in csv_files]}
 
 @api_router.post("/reports/{rid}/map-columns")
 async def map_columns(rid: str, data: MappingRequest, user=Depends(get_current_user)):
-    if not await db.reports.find_one({"_id": ObjectId(rid), "user_id": user["_id"]}):
+    if not await db.reports.find_one({"_id": _validate_oid(rid), "user_id": user["_id"]}):
         raise HTTPException(404, "Report not found")
     await db.reports.update_one(
-        {"_id": ObjectId(rid)},
+        {"_id": _validate_oid(rid)},
         {"$set": {"column_mapping": data.mapping, "status": "mapped", "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     if data.save_as_template:
@@ -364,7 +380,7 @@ async def map_columns(rid: str, data: MappingRequest, user=Depends(get_current_u
 
 @api_router.post("/reports/{rid}/generate")
 async def generate_report(rid: str, user=Depends(get_current_user)):
-    doc = await db.reports.find_one({"_id": ObjectId(rid), "user_id": user["_id"]})
+    doc = await db.reports.find_one({"_id": _validate_oid(rid), "user_id": user["_id"]})
     if not doc:
         raise HTTPException(404, "Report not found")
     mapping = doc.get("column_mapping")
@@ -405,7 +421,7 @@ async def generate_report(rid: str, user=Depends(get_current_user)):
         chart_data = [{"date": k, **v} for k, v in sorted(daily.items())][:30]
 
     await db.reports.update_one(
-        {"_id": ObjectId(rid)},
+        {"_id": _validate_oid(rid)},
         {"$set": {"kpi_data": kpi_data, "chart_data": chart_data, "status": "complete", "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     return {"kpi_data": kpi_data, "chart_data": chart_data}
@@ -413,7 +429,7 @@ async def generate_report(rid: str, user=Depends(get_current_user)):
 @api_router.put("/reports/{rid}/summary")
 async def update_summary(rid: str, data: SummaryUpdate, user=Depends(get_current_user)):
     await db.reports.update_one(
-        {"_id": ObjectId(rid), "user_id": user["_id"]},
+        {"_id": _validate_oid(rid), "user_id": user["_id"]},
         {"$set": {"summary": data.summary, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     return {"message": "Updated"}
@@ -432,7 +448,7 @@ async def create_template(data: TemplateCreate, user=Depends(get_current_user)):
 
 @api_router.delete("/templates/{tid}")
 async def delete_template(tid: str, user=Depends(get_current_user)):
-    await db.templates.delete_one({"_id": ObjectId(tid), "user_id": user["_id"]})
+    await db.templates.delete_one({"_id": _validate_oid(tid), "user_id": user["_id"]})
     return {"message": "Deleted"}
 
 # ── App ───────────────────────────────────────────────────────────────────────

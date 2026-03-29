@@ -97,11 +97,27 @@ export default function NewReportPage() {
     }
   };
 
+  const validateFile = (f) => {
+    if (!f.name.toLowerCase().endsWith(".csv")) {
+      toast.error(`"${f.name}" is not a CSV file — only .csv files are accepted`);
+      return false;
+    }
+    if (f.size === 0) {
+      toast.error(`"${f.name}" is empty`);
+      return false;
+    }
+    if (f.size > 15 * 1024 * 1024) {
+      toast.error(`"${f.name}" exceeds the 15 MB size limit`);
+      return false;
+    }
+    return true;
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
     setDragging(false);
-    const dropped = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(".csv"));
-    if (dropped.length === 0) { toast.error("Please drop CSV files only"); return; }
+    const dropped = Array.from(e.dataTransfer.files).filter(validateFile);
+    if (dropped.length === 0) return;
     setFiles(prev => [...prev, ...dropped].slice(0, 3));
   };
 
@@ -193,7 +209,11 @@ export default function NewReportPage() {
               type="file"
               accept=".csv"
               multiple
-              onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files)].slice(0, 3))}
+              onChange={e => {
+                const valid = Array.from(e.target.files).filter(validateFile);
+                setFiles(prev => [...prev, ...valid].slice(0, 3));
+                e.target.value = "";
+              }}
               className="hidden"
               data-testid="csv-file-input"
             />

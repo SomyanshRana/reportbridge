@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { Save, Zap, ChevronDown, Check } from "lucide-react";
+import { Save, Zap, ChevronDown, Check, AlertTriangle } from "lucide-react";
 import { useInspector } from "../contexts/InspectorContext";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
@@ -26,6 +26,7 @@ export default function ColumnMappingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [lowMatchWarning, setLowMatchWarning] = useState(false);
   const { setContent } = useInspector();
 
   useEffect(() => {
@@ -41,6 +42,12 @@ export default function ColumnMappingPage() {
         // Collect all headers from all CSV files
         const headers = r.csv_files?.flatMap(f => f.headers || []) || [];
         setAllHeaders([...new Set(headers)]);
+        // Check if headers look like marketing data
+        const KEYWORDS = ["date", "week", "month", "day", "spend", "cost", "budget",
+          "lead", "conversion", "revenue", "sales", "income", "click", "impression"];
+        const lower = headers.map(h => h.toLowerCase());
+        const hasMatch = KEYWORDS.some(kw => lower.some(h => h.includes(kw)));
+        setLowMatchWarning(!hasMatch && headers.length > 0);
         // Pre-fill from existing mapping or auto-detect
         if (r.column_mapping) {
           setMapping(r.column_mapping);
@@ -144,6 +151,19 @@ export default function ColumnMappingPage() {
         <h1 className="font-sans text-xl font-semibold text-gray-900">Map Columns</h1>
         <p className="font-mono text-xs text-gray-400 mt-0.5">{report?.name} — {report?.client_name}</p>
       </div>
+
+      {/* Header warning */}
+      {lowMatchWarning && (
+        <div
+          data-testid="mapping-warning"
+          className="mb-4 flex items-start gap-2 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-sm"
+        >
+          <AlertTriangle size={14} className="text-yellow-500 flex-shrink-0 mt-0.5" />
+          <p className="font-mono text-xs text-yellow-700">
+            Your CSV headers don't look like typical marketing columns. You'll need to map them manually — check that your file contains date, spend, leads, and revenue data.
+          </p>
+        </div>
+      )}
 
       {/* Apply template */}
       {templates.length > 0 && (
