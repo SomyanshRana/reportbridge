@@ -1,0 +1,47 @@
+{
+  "summary": "Comprehensive testing of ReportBridge demo onboarding system. All 10 test cases PASS. Fresh signup redirects to demo preview, demo banner shows correctly with all 3 controls, KPI values valid, login flow redirects when has_seen_demo=False, mark-demo-seen works, subsequent login goes to dashboard, demo@reportbridge.io goes to dashboard, all 3 sample CSV download buttons present in Step 2.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_4.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "mark-demo-seen is called twice on initial signup preview (double console log '[DEMO] marked as seen') - minor, does not affect correctness since endpoint is idempotent"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100% (10/10 test cases pass)"
+  },
+  "test_credentials": {
+    "demo": "demo@reportbridge.io / demo1234",
+    "test_users_created": [
+      "testfresh1774819551@test.com / test123456",
+      "testfresh1774819607@test.com / test123456",
+      "testlogin1774819695@test.com / test123456",
+      "apitest{timestamp}@test.com / test123456"
+    ]
+  },
+  "seed_data_creation": "Created multiple test users during testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 10 onboarding demo features verified working. signup route is /signup (not /register). Sessions can expire quickly in test environment. Login after mark-demo-seen correctly goes to /app. demo@reportbridge.io has has_seen_demo=True. Sample CSV buttons exist in Step 2 with correct testids.",
+  "test_results": {
+    "1_fresh_signup": "PASS - Redirected to /app/reports/{id}/preview, has_seen_demo=False, demo_report_id returned",
+    "2_fresh_login_flow": "PASS - API verified: login with has_seen_demo=False returns demo_report_id, same ID as signup",
+    "3_demo_banner": "PASS - demo-banner, demo-banner-cta, demo-banner-dismiss all visible; dismiss works",
+    "4_mark_demo_seen": "PASS - After mark-demo-seen, login returns has_seen_demo=True, demo_report_id=null, user goes to /app",
+    "5_demo_data_correctness": "PASS - Client name is 'Acme Marketing', KPI values computed correctly",
+    "6_idempotency": "PASS - Same demo_report_id returned on multiple logins before mark-seen; null after mark-seen",
+    "7_demo_user_login": "PASS - demo@reportbridge.io goes to /app (not preview), has_seen_demo=True",
+    "8_dashboard_empty_state": "PASS - demo user has reports table with reports (not empty state)",
+    "9_sample_csv_buttons": "PASS - All 3 buttons present: download-sample-standard, download-sample-google-ads, download-sample-meta-ads",
+    "10_kpi_values": "PASS - All 5 KPI cards show valid values: Total Spend $5,302.11, Total Leads 498, Total Revenue $16,506.68, CPL $10.65, ROAS 3.11x"
+  }
+}

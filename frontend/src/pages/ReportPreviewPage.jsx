@@ -58,7 +58,13 @@ export default function ReportPreviewPage() {
       .then(r => {
         setReport(r.data);
         setSummary(r.data.summary || "");
-        if (r.data.is_demo) setDemoBannerVisible(true);
+        if (r.data.is_demo) {
+          setDemoBannerVisible(true);
+          // Mark as seen so subsequent logins don't auto-redirect
+          axios.post(`${API}/auth/mark-demo-seen`, {}, { withCredentials: true })
+            .then(() => console.log("[DEMO] marked as seen"))
+            .catch(() => {});
+        }
       })
       .catch(err => {
         if (err.response?.status === 401) {

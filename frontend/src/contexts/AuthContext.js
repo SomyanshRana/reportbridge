@@ -53,6 +53,10 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     try {
       const { data } = await axios.post(`${API}/auth/login`, { email, password }, { withCredentials: true });
+      // If user hasn't seen demo yet and has a demo report, queue the redirect
+      if (!data.has_seen_demo && data.demo_report_id) {
+        sessionStorage.setItem("onboarding_demo_report", data.demo_report_id);
+      }
       setUser(data);
       return { success: true };
     } catch (e) {

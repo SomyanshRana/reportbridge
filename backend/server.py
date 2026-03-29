@@ -85,7 +85,13 @@ async def get_current_user(request: Request) -> dict:
         user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
         if not user:
             raise HTTPException(401, "User not found")
-        return {"_id": str(user["_id"]), "email": user["email"], "name": user.get("name", ""), "role": user.get("role", "user")}
+        return {
+            "_id": str(user["_id"]),
+            "email": user["email"],
+            "name": user.get("name", ""),
+            "role": user.get("role", "user"),
+            "has_seen_demo": user.get("has_seen_demo", False),
+        }
     except jwt.ExpiredSignatureError:
         raise HTTPException(401, "Token expired")
     except jwt.InvalidTokenError:
@@ -129,44 +135,73 @@ class TemplateCreate(BaseModel):
 
 # ── Onboarding Demo Seed ─────────────────────────────────────────────────────
 async def _seed_new_user_demo(uid: str) -> str:
-    """Creates demo client + 30-day report for every new user. Returns report ID."""
-    client_res = await db.clients.insert_one({
-        "user_id": uid, "name": "Acme Digital", "industry": "Technology",
-        "is_demo": True, "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    client_id = str(client_res.inserted_id)
+    """
+    Creates demo client 'Acme Marketing' + 30-day report for a user.
+    Idempotent: returns existing demo report ID if already seeded.
+    """
+    # Idempotency guard — never create twice
+    existing = await db.reports.find_one({"user_id": uid, "is_demo": True})
+    if existing:
+        rid = str(existing["_id"])
+        logger.info(f"[DEMO] Demo already exists for user {uid}: {rid}")
+        return rid
 
+    logger.info(f"[DEMO] Creating demo data for user {uid}")
+
+    # Create or reuse demo client
+    existing_client = await db.clients.find_one({"user_id": uid, "is_demo": True})
+    if existing_client:
+        client_id = str(existing_client["_id"])
+        client_name = existing_client.get("name", "Acme Marketing")
+    else:
+        client_res = await db.clients.insert_one({
+            "user_id": uid, "name": "Acme Marketing", "industry": "Marketing",
+            "is_demo": True, "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        client_id = str(client_res.inserted_id)
+        client_name = "Acme Marketing"
+
+    # Generate 30 days of realistic data
+    # spend: 50–300 | leads: 5–30 | revenue: 200–1000
     chart_data = []
     for i in range(30):
-        seed_val = sum(ord(c) for c in uid[:8]) + i * 13
-        random.seed(seed_val)
+        random.seed(sum(ord(c) for c in uid[:8]) + i * 17)
         day_str = (datetime.now(timezone.utc) - timedelta(days=29 - i)).strftime("%b %d")
-        spend = round(random.uniform(900, 2000), 2)
-        leads = random.randint(18, 85)
-        revenue = round(spend * random.uniform(2.5, 5.5), 2)
+        spend = round(random.uniform(50, 300), 2)
+        leads = random.randint(5, 30)
+        revenue = round(random.uniform(200, 1000), 2)
         chart_data.append({"date": day_str, "spend": spend, "leads": leads, "revenue": revenue})
 
-    ts = sum(d["spend"] for d in chart_data)
+    ts = round(sum(d["spend"] for d in chart_data), 2)
     tl = sum(d["leads"] for d in chart_data)
-    tr = sum(d["revenue"] for d in chart_data)
+    tr = round(sum(d["revenue"] for d in chart_data), 2)
     kpi_data = {
-        "total_spend": round(ts, 2), "total_leads": tl,
-        "total_revenue": round(tr, 2),
-        "cpl": round(ts / tl, 2) if tl else 0,
-        "roas": round(tr / ts, 2) if ts else 0
+        "total_spend": ts,
+        "total_leads": tl,
+        "total_revenue": tr,
+        "cpl": round(ts / tl, 2) if tl > 0 else 0,
+        "roas": round(tr / ts, 2) if ts > 0 else 0,
     }
 
     now_str = datetime.now(timezone.utc).isoformat()
     report_res = await db.reports.insert_one({
-        "user_id": uid, "client_id": client_id, "client_name": "Acme Digital",
+        "user_id": uid,
+        "client_id": client_id,
+        "client_name": client_name,
         "name": "Demo Report — Last 30 Days",
-        "status": "complete", "is_demo": True, "csv_files": [],
+        "status": "complete",
+        "is_demo": True,
+        "csv_files": [],
         "column_mapping": {"date": "date", "spend": "spend", "leads": "leads", "revenue": "revenue"},
-        "kpi_data": kpi_data, "chart_data": chart_data,
-        "summary": "Welcome to ReportBridge! This demo shows 30 days of sample marketing data for Acme Digital. KPIs are auto-calculated from the simulated dataset — Spend, Leads, Revenue, CPL, and ROAS. Upload your own CSV to create a real report for any client.",
-        "created_at": now_str, "updated_at": now_str
+        "kpi_data": kpi_data,
+        "chart_data": chart_data,
+        "summary": "This report shows performance over the last 30 days for Acme Marketing. KPIs are calculated from simulated campaign data — Total Spend, Leads, Revenue, Cost Per Lead (CPL), and Return on Ad Spend (ROAS). Upload your own CSV to replace this with real client data.",
+        "created_at": now_str,
+        "updated_at": now_str,
     })
-    return str(report_res.inserted_id)
+    rid = str(report_res.inserted_id)
+    logger.info(f"[DEMO] Demo report created: {rid} for user {uid}")
+    return rid
 
 # ── Auth Endpoints ────────────────────────────────────────────────────────────
 @api_router.post("/auth/register")
@@ -181,13 +216,20 @@ async def register(data: RegisterRequest):
     if await db.users.find_one({"email": email}):
         raise HTTPException(400, "Email already registered")
     res = await db.users.insert_one({
-        "email": email, "name": data.name,
+        "email": email,
+        "name": data.name,
         "password_hash": hash_pw(data.password),
-        "role": "user", "created_at": datetime.now(timezone.utc).isoformat()
+        "role": "user",
+        "has_seen_demo": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
     uid = str(res.inserted_id)
+    logger.info(f"[REGISTER] New user {uid} ({email})")
     demo_report_id = await _seed_new_user_demo(uid)
-    resp = JSONResponse({"id": uid, "email": email, "name": data.name, "role": "user", "demo_report_id": demo_report_id})
+    resp = JSONResponse({
+        "id": uid, "email": email, "name": data.name,
+        "role": "user", "has_seen_demo": False, "demo_report_id": demo_report_id,
+    })
     _set_auth_cookies(resp, uid, email)
     return resp
 
@@ -198,7 +240,31 @@ async def login(data: LoginRequest):
     if not user or not verify_pw(data.password, user["password_hash"]):
         raise HTTPException(401, "Invalid email or password")
     uid = str(user["_id"])
-    resp = JSONResponse({"id": uid, "email": email, "name": user.get("name", ""), "role": user.get("role", "user")})
+    has_seen_demo = user.get("has_seen_demo", False)
+    demo_report_id = None
+
+    if not has_seen_demo:
+        # Find existing demo report first (cheap lookup)
+        demo_doc = await db.reports.find_one({"user_id": uid, "is_demo": True})
+        if demo_doc:
+            demo_report_id = str(demo_doc["_id"])
+            logger.info(f"[DEMO] Existing demo for user {uid}: {demo_report_id}")
+        else:
+            # Fallback: if user has zero reports at all, create demo on login
+            report_count = await db.reports.count_documents({"user_id": uid})
+            if report_count == 0:
+                logger.info(f"[DEMO] No reports for user {uid} — creating demo on login (fallback)")
+                demo_report_id = await _seed_new_user_demo(uid)
+
+    logger.info(f"[LOGIN] user={uid} has_seen_demo={has_seen_demo} demo_report_id={demo_report_id}")
+    resp = JSONResponse({
+        "id": uid,
+        "email": email,
+        "name": user.get("name", ""),
+        "role": user.get("role", "user"),
+        "has_seen_demo": has_seen_demo,
+        "demo_report_id": demo_report_id,
+    })
     _set_auth_cookies(resp, uid, email)
     return resp
 
@@ -208,6 +274,16 @@ async def logout():
     resp.delete_cookie("access_token")
     resp.delete_cookie("refresh_token")
     return resp
+
+@api_router.post("/auth/mark-demo-seen")
+async def mark_demo_seen(user=Depends(get_current_user)):
+    """Called by frontend after user views demo report for first time."""
+    await db.users.update_one(
+        {"_id": _validate_oid(user["_id"])},
+        {"$set": {"has_seen_demo": True}}
+    )
+    logger.info(f"[DEMO] User {user['_id']} marked demo as seen")
+    return {"message": "OK"}
 
 @api_router.get("/auth/me")
 async def me(user=Depends(get_current_user)):
@@ -472,9 +548,19 @@ async def startup():
         await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_pw(admin_pw)}})
 
     demo_email = "demo@reportbridge.io"
-    if not await db.users.find_one({"email": demo_email}):
-        res = await db.users.insert_one({"email": demo_email, "name": "Demo User", "password_hash": hash_pw("demo1234"), "role": "user", "created_at": datetime.now(timezone.utc).isoformat()})
+    existing_demo_user = await db.users.find_one({"email": demo_email})
+    if not existing_demo_user:
+        res = await db.users.insert_one({
+            "email": demo_email, "name": "Demo User",
+            "password_hash": hash_pw("demo1234"), "role": "user",
+            "has_seen_demo": True,  # Pre-seeded account skips first-time onboarding
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
         await _seed_demo(str(res.inserted_id))
+    else:
+        # Backfill has_seen_demo for any existing user missing the field
+        if "has_seen_demo" not in existing_demo_user:
+            await db.users.update_one({"email": demo_email}, {"$set": {"has_seen_demo": True}})
 
     os.makedirs("/app/memory", exist_ok=True)
     with open("/app/memory/test_credentials.md", "w") as f:

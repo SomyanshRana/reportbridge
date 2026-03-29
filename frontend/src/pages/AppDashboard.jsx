@@ -24,7 +24,7 @@ export default function AppDashboard() {
   const { setContent } = useInspector();
 
   useEffect(() => {
-    // Onboarding redirect: new users are sent here after signup with a demo report ready
+    // Onboarding redirect: new users (signup OR first login) are sent to demo preview
     const demoReportId = sessionStorage.getItem("onboarding_demo_report");
     if (demoReportId) {
       sessionStorage.removeItem("onboarding_demo_report");
@@ -127,8 +127,17 @@ export default function AppDashboard() {
 
         {reports.length === 0 ? (
           <div className="bg-white border border-dashed border-gray-200 rounded-sm p-10 text-center">
-            <FileText size={24} className="text-gray-300 mx-auto mb-3" />
-            <p className="font-sans text-sm text-gray-500 mb-4">No reports yet. Create your first report to get started.</p>
+            <FileText size={28} className="text-gray-200 mx-auto mb-3" />
+            <p className="font-sans text-sm font-semibold text-gray-700 mb-1">No reports yet</p>
+            <p className="font-mono text-xs text-gray-400 mb-4">
+              Upload a CSV and generate your first client report in minutes.
+            </p>
+            {clients.length === 0 && (
+              <p className="font-mono text-[10px] text-amber-500 mb-3">
+                You'll need a client first.{" "}
+                <Link to="/app/clients" className="text-cyan-500 hover:underline">Add a client →</Link>
+              </p>
+            )}
             <Link
               to="/app/reports/new"
               data-testid="create-first-report-btn"
