@@ -21,8 +21,12 @@ export default function SignupPage() {
     const result = await register(email, name, password);
     setLoading(false);
     if (result.success) {
-      toast.success("Account created! Welcome to ReportBridge.");
-      navigate("/app");
+      toast.success("Account created! Here's your demo report to get started.");
+      if (result.demo_report_id) {
+        navigate(`/app/reports/${result.demo_report_id}/preview`);
+      } else {
+        navigate("/app");
+      }
     } else {
       setError(result.error);
     }

@@ -120,6 +120,47 @@ class TemplateCreate(BaseModel):
     name: str
     column_mapping: Dict[str, str]
 
+# ── Onboarding Demo Seed ─────────────────────────────────────────────────────
+async def _seed_new_user_demo(uid: str) -> str:
+    """Creates demo client + 30-day report for every new user. Returns report ID."""
+    client_res = await db.clients.insert_one({
+        "user_id": uid, "name": "Acme Digital", "industry": "Technology",
+        "is_demo": True, "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    client_id = str(client_res.inserted_id)
+
+    chart_data = []
+    for i in range(30):
+        seed_val = sum(ord(c) for c in uid[:8]) + i * 13
+        random.seed(seed_val)
+        day_str = (datetime.now(timezone.utc) - timedelta(days=29 - i)).strftime("%b %d")
+        spend = round(random.uniform(900, 2000), 2)
+        leads = random.randint(18, 85)
+        revenue = round(spend * random.uniform(2.5, 5.5), 2)
+        chart_data.append({"date": day_str, "spend": spend, "leads": leads, "revenue": revenue})
+
+    ts = sum(d["spend"] for d in chart_data)
+    tl = sum(d["leads"] for d in chart_data)
+    tr = sum(d["revenue"] for d in chart_data)
+    kpi_data = {
+        "total_spend": round(ts, 2), "total_leads": tl,
+        "total_revenue": round(tr, 2),
+        "cpl": round(ts / tl, 2) if tl else 0,
+        "roas": round(tr / ts, 2) if ts else 0
+    }
+
+    now_str = datetime.now(timezone.utc).isoformat()
+    report_res = await db.reports.insert_one({
+        "user_id": uid, "client_id": client_id, "client_name": "Acme Digital",
+        "name": "Demo Report — Last 30 Days",
+        "status": "complete", "is_demo": True, "csv_files": [],
+        "column_mapping": {"date": "date", "spend": "spend", "leads": "leads", "revenue": "revenue"},
+        "kpi_data": kpi_data, "chart_data": chart_data,
+        "summary": "Welcome to ReportBridge! This demo shows 30 days of sample marketing data for Acme Digital. KPIs are auto-calculated from the simulated dataset — Spend, Leads, Revenue, CPL, and ROAS. Upload your own CSV to create a real report for any client.",
+        "created_at": now_str, "updated_at": now_str
+    })
+    return str(report_res.inserted_id)
+
 # ── Auth Endpoints ────────────────────────────────────────────────────────────
 @api_router.post("/auth/register")
 async def register(data: RegisterRequest):
@@ -132,7 +173,8 @@ async def register(data: RegisterRequest):
         "role": "user", "created_at": datetime.now(timezone.utc).isoformat()
     })
     uid = str(res.inserted_id)
-    resp = JSONResponse({"id": uid, "email": email, "name": data.name, "role": "user"})
+    demo_report_id = await _seed_new_user_demo(uid)
+    resp = JSONResponse({"id": uid, "email": email, "name": data.name, "role": "user", "demo_report_id": demo_report_id})
     _set_auth_cookies(resp, uid, email)
     return resp
 
@@ -219,6 +261,7 @@ def _fmt_report(doc: dict) -> dict:
         "summary": doc.get("summary"),
         "created_at": doc.get("created_at"),
         "updated_at": doc.get("updated_at"),
+        "is_demo": doc.get("is_demo", False),
     }
 
 @api_router.get("/reports")
@@ -263,11 +306,27 @@ async def upload_csv(rid: str, files: List[UploadFile] = File(...), user=Depends
     csv_files = []
     for f in files:
         content = await f.read()
+        if len(content) > 15 * 1024 * 1024:
+            raise HTTPException(400, f"{f.filename} exceeds the 15 MB file size limit")
+        if len(content) == 0:
+            raise HTTPException(400, f"{f.filename} is empty")
         try:
-            df = pd.read_csv(io.BytesIO(content))
+            df = None
+            for enc in ('utf-8', 'utf-8-sig', 'latin-1', 'cp1252'):
+                try:
+                    df = pd.read_csv(io.BytesIO(content), encoding=enc)
+                    break
+                except (UnicodeDecodeError, pd.errors.ParserError):
+                    continue
+            if df is None:
+                raise ValueError("Could not read file — make sure it is a valid UTF-8 or Latin-1 CSV")
+            if df.empty:
+                raise ValueError("The CSV file has no data rows")
+            if len(df.columns) < 2:
+                raise ValueError("CSV must have at least 2 columns")
             df = df.where(pd.notna(df), None)
             rows = []
-            for row in df.to_dict(orient="records")[:500]:
+            for row in df.to_dict(orient="records")[:2000]:
                 clean = {}
                 for k, v in row.items():
                     if v is None or (isinstance(v, float) and math.isnan(v)):
@@ -278,8 +337,10 @@ async def upload_csv(rid: str, files: List[UploadFile] = File(...), user=Depends
                         clean[k] = str(v)
                 rows.append(clean)
             csv_files.append({"filename": f.filename, "headers": list(df.columns), "rows": rows, "row_count": len(df)})
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(400, f"Failed to parse {f.filename}: {e}")
+            raise HTTPException(400, f"Failed to parse {f.filename}: {str(e)[:200]}")
     await db.reports.update_one(
         {"_id": ObjectId(rid), "user_id": user["_id"]},
         {"$set": {"csv_files": csv_files, "status": "uploaded", "updated_at": datetime.now(timezone.utc).isoformat()}}

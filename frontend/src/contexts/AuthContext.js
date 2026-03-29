@@ -16,12 +16,39 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Restore session on mount
   useEffect(() => {
     axios.get(`${API}/auth/me`, { withCredentials: true })
       .then(r => setUser(r.data))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  // Global 401 interceptor — silently refresh token before failing
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      r => r,
+      async err => {
+        const cfg = err.config;
+        // Don't retry auth endpoints or already-retried requests
+        if (
+          err.response?.status === 401 &&
+          !cfg._retried &&
+          !cfg.url?.includes("/auth/")
+        ) {
+          cfg._retried = true;
+          try {
+            await axios.post(`${API}/auth/refresh`, {}, { withCredentials: true });
+            return axios(cfg);
+          } catch {
+            setUser(null);
+          }
+        }
+        return Promise.reject(err);
+      }
+    );
+    return () => axios.interceptors.response.eject(id);
+  }, []); // eslint-disable-line
 
   const login = useCallback(async (email, password) => {
     try {
@@ -37,7 +64,7 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await axios.post(`${API}/auth/register`, { email, name, password }, { withCredentials: true });
       setUser(data);
-      return { success: true };
+      return { success: true, demo_report_id: data.demo_report_id };
     } catch (e) {
       return { success: false, error: fmtErr(e.response?.data?.detail) || e.message };
     }
