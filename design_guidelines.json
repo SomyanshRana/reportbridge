@@ -1,0 +1,86 @@
+{
+  "theme": "light",
+  "archetype": "4 (Swiss & High-Contrast)",
+  "design_philosophy": "Browser-Core Modernism (DevTools UI). The application should feel like a highly structured, precise, and professional desktop application or IDE. Information density is high, layouts are rigid, and every panel is explicitly delineated by 1px borders.",
+  "colors": {
+    "background": "#f3f4f6",
+    "panel_background": "#ffffff",
+    "border_light": "#e5e7eb",
+    "border_dark": "#d1d5db",
+    "accent_primary": "#06B6D4",
+    "accent_hover": "#0891b2",
+    "text_primary": "#111827",
+    "text_secondary": "#4b5563",
+    "text_muted": "#6b7280",
+    "mac_red": "#ff5f57",
+    "mac_yellow": "#febc2e",
+    "mac_green": "#28c840",
+    "readme_bg": "#0f172a",
+    "readme_text": "#e2e8f0"
+  },
+  "typography": {
+    "primary_font": "Inter",
+    "secondary_font": "JetBrains Mono",
+    "rules": {
+      "h1": "font-sans text-4xl sm:text-5xl font-bold tracking-tight text-gray-900 leading-tight",
+      "h2": "font-sans text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900",
+      "h3": "font-sans text-xl font-medium tracking-tight text-gray-900",
+      "body": "font-sans text-base text-gray-600 leading-relaxed",
+      "data_labels": "font-mono text-xs uppercase tracking-[0.05em] text-gray-500",
+      "table_cells": "font-mono text-sm text-gray-700",
+      "code_blocks": "font-mono text-sm text-gray-300",
+      "buttons": "font-sans text-sm font-medium tracking-wide"
+    }
+  },
+  "spacing_and_layout": {
+    "grid_system": "4px/8px incremental scale (p-1, p-2, p-4, etc.)",
+    "borders": "1px solid #e5e7eb or #d1d5db on almost all containers.",
+    "border_radius": "rounded-none or max rounded-sm (2px to 4px) to maintain a technical, sharp DevTools aesthetic.",
+    "shadows": "subtle shadow exactly 0 1px 3px 0 rgba(0,0,0,0.1) for floating elements, popovers, and the main browser frame.",
+    "app_workspace": {
+      "wrapper": "Browser chrome frame wrapping the entire UI (Top bar with traffic light buttons, address bar).",
+      "left_sidebar": "256px fixed width, styled as an explorer tree.",
+      "center_stage": "flex-1, main report canvas.",
+      "right_sidebar": "320px fixed width, property inspector.",
+      "internal_panels": "bg-white border-r border-gray-200 h-full overflow-y-auto"
+    }
+  },
+  "components": {
+    "buttons": "Sharp corners or rounded-sm. Primary buttons use #06B6D4 bg with white text. Hover state darkens to #0891b2. Secondary buttons are white bg with #d1d5db border and gray text.",
+    "cards": "bg-white border border-gray-200 shadow-sm rounded-sm. No soft, large radii.",
+    "tables": "Dense rows, 1px borders between rows and columns. Header row uses font-mono, uppercase text.",
+    "charts": "Recharts. Tooltips must use JetBrains Mono. Axes use JetBrains Mono text-xs. Main line/bar color is #06B6D4.",
+    "inputs": "bg-white border border-gray-300 rounded-sm focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 font-sans text-sm. For data-heavy inputs, use font-mono.",
+    "browser_chrome": "A header component mimicking macOS/Chrome. Top edge has rounded-t-lg, bg-white or bg-gray-100, border-b border-gray-200. Three 12px circular dots on the left (Red, Yellow, Green). A centered gray pill for the address bar.",
+    "tabs": "Square-edged tabs, active tab has a top 2px cyan border and white background, inactive tabs are gray-50."
+  },
+  "motion": {
+    "philosophy": "Functional only, no spring physics. Linear or ease-in-out.",
+    "duration": "0.4s ease-in-out for panel slides or fades. 0.15s for hover states."
+  },
+  "landing_page_structure": {
+    "hero": "DevTools-style hero. A massive mock browser window containing the UI. Background should use a subtle technical CSS grid (e.g., repeating-linear-gradient).",
+    "features": "Presented as IDE extensions or panels.",
+    "changelog": "Release notes section, styled like a commit history or technical changelog (using monospace dates).",
+    "readme_manifesto": "A dark container (#0f172a bg) mimicking a code editor or markdown file, using JetBrains Mono text, explaining the 'why' of the product.",
+    "faq": "Technical accordion, clean borders, + / - icons."
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1565688527174-775059ac429c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHwxfHxtYXJrZXRpbmclMjBhZ2VuY3klMjB0ZWFtJTIwd29ya2luZyUyMHRvZ2V0aGVyfGVufDB8fHx8MTc3NDgxMDM1OXww&ixlib=rb-4.1.0&q=85",
+        "category": "social_proof",
+        "description": "Marketing agency team working. Use in the 'About' or 'Testimonials' section as a grounded, human element amidst the technical UI."
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Install and configure 'Inter' and 'JetBrains Mono' fonts from Google Fonts via next/font or standard HTML link tags.",
+    "Use standard Tailwind classes but strictly adhere to the defined color palette: bg-gray-100 for the app background, bg-white for panels.",
+    "Build a reusable 'BrowserFrame' layout component that wraps the landing page hero image AND the actual /app routes.",
+    "The 3-panel workspace MUST strictly follow the widths: 256px left, flex-1 center, 320px right. Use standard CSS flexbox or grid for this, ensuring h-screen and overflow handling per panel.",
+    "Use Shadcn UI components but override their border-radius to be rounded-sm or rounded-none to fit the DevTools aesthetic.",
+    "Apply 'data-testid' to all interactive elements for robust testing.",
+    "For the PDF export, rely on standard browser print CSS (@media print) to format the center stage report canvas cleanly."
+  ]
+}
