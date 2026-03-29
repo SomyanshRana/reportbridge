@@ -63,6 +63,10 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (email, name, password) => {
     try {
       const { data } = await axios.post(`${API}/auth/register`, { email, name, password }, { withCredentials: true });
+      // Store demo redirect BEFORE setUser so PublicRoute -> /app transition picks it up in AppDashboard
+      if (data.demo_report_id) {
+        sessionStorage.setItem("onboarding_demo_report", data.demo_report_id);
+      }
       setUser(data);
       return { success: true, demo_report_id: data.demo_report_id };
     } catch (e) {

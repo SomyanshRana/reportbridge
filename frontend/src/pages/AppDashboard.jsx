@@ -24,6 +24,14 @@ export default function AppDashboard() {
   const { setContent } = useInspector();
 
   useEffect(() => {
+    // Onboarding redirect: new users are sent here after signup with a demo report ready
+    const demoReportId = sessionStorage.getItem("onboarding_demo_report");
+    if (demoReportId) {
+      sessionStorage.removeItem("onboarding_demo_report");
+      navigate(`/app/reports/${demoReportId}/preview`);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const [rRes, cRes] = await Promise.all([
@@ -39,7 +47,7 @@ export default function AppDashboard() {
       }
     };
     fetchData();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     setContent(
