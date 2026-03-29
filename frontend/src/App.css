@@ -1,34 +1,34 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Fade-in-up animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+
+/* Staggered entrance */
+.fade-in-up-1 { animation: fadeInUp 0.4s ease-out 0.05s both; }
+.fade-in-up-2 { animation: fadeInUp 0.4s ease-out 0.1s both; }
+.fade-in-up-3 { animation: fadeInUp 0.4s ease-out 0.15s both; }
+.fade-in-up-4 { animation: fadeInUp 0.4s ease-out 0.2s both; }
+
+/* Cyan pulse for badge */
+@keyframes pulseCyan {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(6, 182, 212, 0); }
+}
+.pulse-cyan { animation: pulseCyan 2s ease-in-out infinite; }
+
+/* Selection ring indicator */
+.selection-ring {
+  outline: 2px solid #06B6D4;
+  outline-offset: 2px;
+  position: relative;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
-
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
-}
-
-.App-link {
-    color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Print styles for PDF export */
+@media print {
+  .no-print { display: none !important; }
+  .print-area { page-break-inside: avoid; }
+  body { background: white !important; font-family: 'Inter', sans-serif; }
+  .report-preview-container { padding: 32px !important; max-width: 100% !important; }
 }
