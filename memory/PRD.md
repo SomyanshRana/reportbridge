@@ -75,7 +75,7 @@ Build a micro-SaaS app called ReportBridge that turns messy CSV exports into cle
 - [ ] CSV sample download for testing
 
 ## P1 Backlog
-- [ ] Report duplication
+- [x] CSV sample download: 3 templates on upload step (Standard, Google Ads, Meta/Facebook) — client-side generation, no backend needed
 - [ ] User profile/settings page
 - [ ] Team collaboration (invite members)
 - [ ] White-label PDF header (agency logo)

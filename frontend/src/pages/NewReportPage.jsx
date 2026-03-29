@@ -2,10 +2,89 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { Upload, FileText, X, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { Upload, FileText, X, CheckCircle, AlertCircle, ArrowRight, Download } from "lucide-react";
 import { useInspector } from "../contexts/InspectorContext";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
+
+// ── Sample CSV generators ─────────────────────────────────────────────────────
+function makeDateStr(base, offsetDays) {
+  const d = new Date(base);
+  d.setDate(d.getDate() + offsetDays);
+  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+}
+
+const SAMPLE_TEMPLATES = [
+  {
+    id: "standard",
+    filename: "standard-template.csv",
+    label: "Standard Template",
+    description: "date · spend · leads · revenue",
+    generate() {
+      const rows = ["date,spend,leads,revenue"];
+      const base = new Date("2024-01-01");
+      for (let i = 0; i < 30; i++) {
+        const spend = (950 + Math.sin(i * 0.7) * 250 + i * 12).toFixed(2);
+        const leads = Math.max(5, Math.round(32 + Math.sin(i * 0.5) * 14 + i * 0.4));
+        const revenue = (parseFloat(spend) * (2.9 + Math.sin(i * 0.4) * 0.4)).toFixed(2);
+        rows.push(`${makeDateStr(base, i)},${spend},${leads},${revenue}`);
+      }
+      return rows.join("\n");
+    },
+  },
+  {
+    id: "google-ads",
+    filename: "google-ads-sample.csv",
+    label: "Google Ads",
+    description: "date · campaign · cost · conversions · revenue",
+    generate() {
+      const rows = ["date,campaign,cost,conversions,revenue"];
+      const base = new Date("2024-01-01");
+      const campaigns = ["Brand Search", "Generic Search", "Shopping"];
+      for (let i = 0; i < 30; i++) {
+        campaigns.forEach((c, ci) => {
+          const spend = (380 + ci * 140 + Math.sin(i * 0.6 + ci) * 80).toFixed(2);
+          const leads = Math.max(2, Math.round(10 + ci * 4 + Math.sin(i * 0.5) * 5));
+          const revenue = (parseFloat(spend) * (2.7 + ci * 0.3)).toFixed(2);
+          rows.push(`${makeDateStr(base, i)},${c},${spend},${leads},${revenue}`);
+        });
+      }
+      return rows.join("\n");
+    },
+  },
+  {
+    id: "meta-ads",
+    filename: "meta-ads-sample.csv",
+    label: "Meta / Facebook",
+    description: "date · ad_set · amount_spent · leads · purchase_value",
+    generate() {
+      const rows = ["date,ad_set_name,amount_spent,leads,purchase_value"];
+      const base = new Date("2024-01-01");
+      const adSets = ["Retargeting", "Lookalike Audience"];
+      for (let i = 0; i < 30; i++) {
+        adSets.forEach((a, ai) => {
+          const spend = (480 + ai * 210 + Math.sin(i * 0.8 + ai) * 95).toFixed(2);
+          const leads = Math.max(3, Math.round(16 + ai * 7 + Math.sin(i * 0.5) * 7));
+          const revenue = (parseFloat(spend) * (2.5 + ai * 0.4)).toFixed(2);
+          rows.push(`${makeDateStr(base, i)},${a},${spend},${leads},${revenue}`);
+        });
+      }
+      return rows.join("\n");
+    },
+  },
+];
+
+function downloadCSV(filename, content) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 export default function NewReportPage() {
   const [clients, setClients] = useState([]);
@@ -193,6 +272,34 @@ export default function NewReportPage() {
       {step === 2 && (
         <div className="bg-white border border-gray-200 rounded-sm p-5">
           <h2 className="font-sans text-sm font-semibold text-gray-700 mb-4">Upload CSV Files (max 3)</h2>
+
+          {/* Sample downloads */}
+          <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400">SAMPLE DATA</p>
+              <span className="font-mono text-[10px] text-gray-400">No CSV? Download a ready-made template</span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {SAMPLE_TEMPLATES.map(t => (
+                <button
+                  key={t.id}
+                  data-testid={`download-sample-${t.id}`}
+                  onClick={() => {
+                    downloadCSV(t.filename, t.generate());
+                    toast.success(`Downloaded "${t.label}" sample (${t.filename})`);
+                  }}
+                  className="flex items-center gap-1.5 font-mono text-[10px] px-2.5 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-sm hover:border-cyan-400 hover:text-cyan-600 transition-colors"
+                  title={t.description}
+                >
+                  <Download size={10} className="flex-shrink-0" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <p className="font-mono text-[10px] text-gray-300 mt-2">
+              Hover a button to see the column layout. Upload the downloaded file straight away to test the full flow.
+            </p>
+          </div>
           <div
             data-testid="csv-drop-zone"
             onDrop={handleDrop}
