@@ -19,7 +19,7 @@ Build a micro-SaaS app called ReportBridge that turns messy CSV exports into cle
 ## What's Been Implemented (Feb 2026)
 - [x] JWT auth (register, login, logout, /me, refresh)
 - [x] Admin seed + Demo user seed (demo@reportbridge.io / demo1234)
-- [x] Demo data: 2 clients (Acme Digital, Bloom Retail) + 2 complete reports
+- [x] Demo data: 2 clients (Acme Digital, Bloom Retail) + 2 complete reports for demo user
 - [x] Landing page: Hero with animated demo, changelog, README dark container, FAQ
 - [x] Auth pages: Login + Signup with browser chrome frame
 - [x] 3-panel workspace: Left sidebar (nav), Center (Outlet), Right inspector
@@ -32,6 +32,17 @@ Build a micro-SaaS app called ReportBridge that turns messy CSV exports into cle
 - [x] Report Preview: KPI cards + Recharts (Line + Bar) + Data table + Editable summary
 - [x] PDF Export: window.print() with @media print CSS
 - [x] Templates: List, apply, delete
+- [x] First-time user onboarding demo: signup seeds demo client+report, redirects to preview
+- [x] Demo banner: amber info bar on demo reports with "Create Real Report" CTA
+- [x] React Error Boundary: wraps entire app, shows graceful crash screen
+- [x] NaN/Infinity protection in KPI fmt() display function
+- [x] ObjectId validation: all routes return 400 (not 500) on invalid ID format
+- [x] Server-side password validation: min 6 chars enforced in backend
+- [x] Client-side CSV validation: file type (.csv) + size (15 MB) + empty check before upload
+- [x] Column mapping warning: warns when CSV headers don't match marketing column keywords
+- [x] Empty state for charts: shown when report has no chart_data
+- [x] Data table row cap: 50 rows visible, "Show all X rows" toggle
+- [x] Session expired toast on 401 errors in report preview
 
 ## User Personas
 - Freelance marketers and small agency owners
@@ -39,12 +50,13 @@ Build a micro-SaaS app called ReportBridge that turns messy CSV exports into cle
 
 ## Core Flow
 1. Sign up / Log in
-2. Add client
-3. Create report (name + client)
-4. Upload 1-3 CSV files
-5. Map columns to fields (date, spend, leads, revenue)
-6. Generate report (KPIs calculated automatically)
-7. Edit summary + Export PDF
+2. New user → auto-seeded demo client + 30-day report → redirected to demo preview
+3. Add real client
+4. Create report (name + client)
+5. Upload 1-3 CSV files
+6. Map columns to fields (date, spend, leads, revenue)
+7. Generate report (KPIs calculated automatically)
+8. Edit summary + Export PDF
 
 ## Page Routes
 - `/` - Landing page
@@ -61,10 +73,10 @@ Build a micro-SaaS app called ReportBridge that turns messy CSV exports into cle
 - [ ] Dark mode toggle
 - [ ] Report list page (filterable by client)
 - [ ] CSV sample download for testing
-- [ ] Report duplication
-- [ ] User profile/settings page
 
 ## P1 Backlog
+- [ ] Report duplication
+- [ ] User profile/settings page
 - [ ] Team collaboration (invite members)
 - [ ] White-label PDF header (agency logo)
 - [ ] Scheduled report emails (Resend integration)
@@ -76,3 +88,4 @@ Build a micro-SaaS app called ReportBridge that turns messy CSV exports into cle
 - [ ] API key for report export endpoint
 - [ ] Webhook notifications
 - [ ] Google Sheets import
+- [ ] Rate limiting on auth endpoints (brute-force protection)
