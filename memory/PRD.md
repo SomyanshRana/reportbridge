@@ -75,7 +75,11 @@ Build a micro-SaaS app called ReportBridge that turns messy CSV exports into cle
 - [ ] CSV sample download for testing
 
 ## P1 Backlog
-- [x] CSV sample download: 3 templates on upload step (Standard, Google Ads, Meta/Facebook) — client-side generation, no backend needed
+- [x] Landing page refactor: Hero rewrite, Problem (dark terminal), Solution (01/02/03 steps), Value (ROI math), Bottom CTA (dark bg)
+- [x] Upgrade hook: browser bar Upgrade btn, sidebar Starter Plan indicator, dashboard plan banner, report-limit warning at >=3 reports
+- [x] Demo banner updated with 👋 emoji + "2 minutes" copy
+- [x] Export helper text: "Send this report to your client in seconds"
+- [x] Upload step guidance text: "Meta Ads, Google Ads, HubSpot, or any marketing platform export"
 - [ ] User profile/settings page
 - [ ] Team collaboration (invite members)
 - [ ] White-label PDF header (agency logo)
