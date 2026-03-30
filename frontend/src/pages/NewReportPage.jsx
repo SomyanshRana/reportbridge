@@ -271,7 +271,10 @@ export default function NewReportPage() {
       {/* Step 2: Upload CSVs */}
       {step === 2 && (
         <div className="bg-white border border-gray-200 rounded-sm p-5">
-          <h2 className="font-sans text-sm font-semibold text-gray-700 mb-4">Upload CSV Files (max 3)</h2>
+          <h2 className="font-sans text-sm font-semibold text-gray-700 mb-1">Upload CSV Files (max 3)</h2>
+          <p className="font-mono text-xs text-gray-400 mb-4">
+            Upload your ad platform CSV — Meta Ads, Google Ads, HubSpot, or any marketing platform export.
+          </p>
 
           {/* Sample downloads */}
           <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-sm">

@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { FileText, Plus, Users, Layers, ArrowRight, Clock } from "lucide-react";
+import { FileText, Plus, Users, Layers, ArrowRight, Clock, Zap, AlertTriangle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useInspector } from "../contexts/InspectorContext";
 
@@ -96,6 +96,31 @@ export default function AppDashboard() {
         </Link>
       </div>
 
+      {/* Plan Banner */}
+      <div
+        data-testid="plan-banner"
+        className="bg-white border border-gray-200 rounded-sm px-4 py-3 flex items-center justify-between gap-3"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 bg-cyan-50 border border-cyan-100 rounded-sm flex items-center justify-center flex-shrink-0">
+            <Zap size={13} className="text-cyan-500" />
+          </div>
+          <div>
+            <p className="font-mono text-xs text-gray-700">
+              You are on <span className="text-cyan-600 font-semibold">Starter plan</span>
+            </p>
+            <p className="font-mono text-[10px] text-gray-400">Basic KPIs · PDF export · unlimited clients</p>
+          </div>
+        </div>
+        <button
+          data-testid="upgrade-to-pro-btn"
+          onClick={() => toast.info("Pro plan coming soon — you'll be the first to know!")}
+          className="flex items-center gap-1.5 font-mono text-xs px-3 py-1.5 bg-[#06B6D4] text-white rounded-sm hover:bg-[#0891b2] transition-colors flex-shrink-0"
+        >
+          <Zap size={10} /> Upgrade to Pro
+        </button>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
@@ -118,7 +143,29 @@ export default function AppDashboard() {
         ))}
       </div>
 
-      {/* Reports List */}
+        {/* Report limit soft paywall (simulated at >= 3 reports) */}
+        {reports.length >= 3 && (
+          <div
+            data-testid="report-limit-banner"
+            className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-sm"
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <p className="font-mono text-xs text-amber-700">
+                You've reached your report limit on the Starter plan.{" "}
+                <strong>Upgrade to Pro</strong> for unlimited reports.
+              </p>
+            </div>
+            <button
+              onClick={() => toast.info("Pro plan coming soon!")}
+              className="font-mono text-xs px-3 py-1.5 bg-amber-500 text-white rounded-sm hover:bg-amber-600 transition-colors flex-shrink-0"
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        )}
+
+        {/* Reports List */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-sans text-sm font-semibold text-gray-700">Recent Reports</h2>

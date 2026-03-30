@@ -1,0 +1,39 @@
+{
+  "summary": "Frontend-only testing of ReportBridge landing page + onboarding UX refactor (11-point improvement). All 10 test areas passed. Verified hero section, problem/solution/value sections, bottom CTA, demo banner, export helper text, upgrade hooks, upload guidance, and navigation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_5.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "NOTE: demo@reportbridge.io's seeded reports (_seed_demo) don't set is_demo=True — so demo banner only works for newly registered users (via _seed_new_user_demo). This is by design (pre-seeded account skips onboarding) but test 6 cannot be verified with the provided demo credentials alone. Tested with a new test user instead."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend only)", "frontend": "100%"},
+  "test_credentials": "demo@reportbridge.io / demo1234 (pre-existing, has_seen_demo=True). testdemo_ui@test.com / test1234 (created for demo banner test)",
+  "seed_data_creation": "Created testdemo_ui@test.com for demo banner verification",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 11 landing page + onboarding UX improvements confirmed working. Backend is 100% (iteration_4). demo@reportbridge.io now has 5 reports (3 created by test agents). Demo banner only shows for newly registered users.",
+  "test_results": {
+    "TEST_1_LANDING_HERO": "PASS - H1 correct, hero-cta to /signup, hero-demo-cta visible, trust text found",
+    "TEST_2_PROBLEM_SECTION": "PASS - Dark terminal box with '→ Export CSVs from Meta / Google Ads' and '// ~3 hours every reporting cycle'",
+    "TEST_3_SOLUTION_SECTION": "PASS - Steps 01/02/03 visible with correct titles, YOU GET box with checkmarks",
+    "TEST_4_VALUE_SECTION": "PASS - '$20–$30 every time' and 'ReportBridge costs less than that per month' text found",
+    "TEST_5_BOTTOM_CTA": "PASS - Dark bg section with heading, subtext, bottom-cta button",
+    "TEST_6_DEMO_BANNER": "PASS - Verified with new test user: '👋 This is a demo report' and '2 minutes' in banner",
+    "TEST_7_EXPORT_HELPER": "PASS - 'Send this report to your client in seconds' visible near Export PDF",
+    "TEST_8A_UPGRADE_BTN": "PASS - upgrade-btn in workspace browser bar",
+    "TEST_8B_SIDEBAR_PLAN": "PASS - Starter Plan text and sidebar-upgrade-link (Upgrade →) found",
+    "TEST_8C_DASHBOARD_PLAN_BANNER": "PASS - plan-banner with Starter plan + upgrade-to-pro-btn on /app",
+    "TEST_8_REPORT_LIMIT_BANNER": "PASS - report-limit-banner shown (demo user has 5 reports >= 3)",
+    "TEST_9_UPLOAD_GUIDANCE": "PASS - 'Upload your ad platform CSV — Meta Ads, Google Ads...' in Step 2",
+    "TEST_10_NAVIGATION": "PASS - How it works, Log in, Start free in nav; Sign up free in footer"
+  }
+}

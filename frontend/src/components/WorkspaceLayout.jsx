@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, FileText, Layers, LogOut, ChevronLeft, ChevronRight, Plus, Download } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Layers, LogOut, ChevronLeft, ChevronRight, Plus, Zap } from "lucide-react";
 import { AuthContext } from "../contexts/AuthContext";
 import { InspectorProvider, InspectorContext } from "../contexts/InspectorContext";
 import { toast } from "sonner";
@@ -65,6 +65,24 @@ function LeftSidebar() {
           <span className="font-mono text-[10px] text-gray-400 bg-gray-50 border border-gray-200 px-1 rounded">⌘N</span>
           <span className="font-mono text-[10px] text-gray-500">New Report</span>
         </button>
+      </div>
+
+      {/* Plan indicator */}
+      <div className="px-3 py-2.5 border-t border-gray-100">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="font-mono text-[9px] uppercase tracking-wider text-gray-400">Starter Plan</span>
+          <button
+            data-testid="sidebar-upgrade-link"
+            onClick={() => toast.info("Upgrade coming soon — enjoy Starter plan for now")}
+            className="font-mono text-[9px] text-cyan-500 hover:text-cyan-600 transition-colors"
+          >
+            Upgrade →
+          </button>
+        </div>
+        <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-1 bg-cyan-500 rounded-full" style={{ width: "40%" }} />
+        </div>
+        <p className="font-mono text-[9px] text-gray-400 mt-1">Free tier · unlimited PDF exports</p>
       </div>
 
       {/* User */}
@@ -178,8 +196,17 @@ function WorkspaceBrowserBar() {
           </div>
           ReportBridge
         </div>
-        <div className="ml-auto w-8 h-7 rounded bg-cyan-50 border border-cyan-200 flex items-center justify-center">
-          <span className="font-mono text-[10px] text-cyan-600 font-semibold">RB</span>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            data-testid="upgrade-btn"
+            onClick={() => toast.info("Upgrade coming soon — you're on Starter plan")}
+            className="flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] text-cyan-600 bg-cyan-50 border border-cyan-200 rounded-sm hover:bg-cyan-100 transition-colors"
+          >
+            <Zap size={9} /> Upgrade
+          </button>
+          <div className="w-8 h-7 rounded bg-cyan-50 border border-cyan-200 flex items-center justify-center">
+            <span className="font-mono text-[10px] text-cyan-600 font-semibold">RB</span>
+          </div>
         </div>
       </div>
     </div>

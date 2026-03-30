@@ -151,8 +151,7 @@ export default function ReportPreviewPage() {
           <div className="flex items-start sm:items-center gap-2">
             <Info size={14} className="text-amber-500 flex-shrink-0 mt-0.5 sm:mt-0" />
             <p className="font-mono text-xs text-amber-700">
-              <strong>This is a demo report</strong> — 30 days of sample marketing data.
-              Upload your own CSV to build a real report for any client.
+              <strong>👋 This is a demo report.</strong> Upload your own CSV to generate reports like this in under 2 minutes.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -187,9 +186,12 @@ export default function ReportPreviewPage() {
         <button
           onClick={() => window.print()}
           data-testid="export-pdf-btn"
-          className="flex items-center gap-2 px-4 py-2 bg-[#06B6D4] text-white text-sm font-medium rounded-sm hover:bg-[#0891b2] transition-colors"
+          className="flex flex-col items-end gap-0.5 text-right"
         >
-          <Download size={14} /> Export PDF
+          <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#06B6D4] text-white text-sm font-medium rounded-sm hover:bg-[#0891b2] transition-colors">
+            <Download size={14} /> Export PDF
+          </span>
+          <span className="font-mono text-[10px] text-gray-400">Send this report to your client in seconds</span>
         </button>
       </div>
 
